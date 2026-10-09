@@ -1,0 +1,28 @@
+{
+  // Configuración de Cloudflare Workers — Nexo Player
+  //
+  // Este archivo es lo que le dice a `wrangler deploy` QUÉ desplegar.
+  // Sin él, Wrangler asume un proyecto de "static assets" (html/css/js)
+  // y falla con:
+  //   "Could not detect a directory containing static files..."
+  //
+  // Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+  // Nombre del Worker -> quedará en https://<name>.<subdominio>.workers.dev
+  "name": "nexo-player",
+
+  // Punto de entrada del código. Es LA clave del arreglo: el worker vive
+  // en una subcarpeta, y el comando de build se ejecuta desde la raíz.
+  "main": "nexo-player/worker.js",
+
+  // Fecha de compatibilidad del runtime (obligatoria en Wrangler 4).
+  "compatibility_date": "2026-10-09",
+
+  // El worker solo usa APIs web estándar (fetch, URL, Response),
+  // así que no necesita ningún flag extra como "nodejs_compat".
+
+  // Opcional: dominio propio en lugar de workers.dev.
+  // "routes": [
+  //   { "pattern": "nexo-player.tudominio.com", "custom_domain": true }
+  // ]
+}
