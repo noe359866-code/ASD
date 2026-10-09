@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { extractTitle, findAllM3u8, extractM3u8, extractHeaderValue } from '../src/extract.js';
+import { extractTitle, findAllM3u8, extractM3u8 } from '../src/extract.js';
 import { embedPage, MOVIE_PAGE, MOVIE_STREAM_URL } from '../testkit/fixtures.mjs';
 
 test('extractTitle: usa og:title y descodifica entidades', () => {
@@ -65,12 +65,6 @@ test('findAllM3u8: devuelve [] cuando no hay flujos', () => {
 test('findAllM3u8: no se traga comillas ni paréntesis del HTML', () => {
   const html = 'src="https://cdn.test/a.m3u8" data-x="1"';
   assert.deepEqual(findAllM3u8(html), ['https://cdn.test/a.m3u8']);
-});
-
-test('extractHeaderValue: localiza un token entre comillas', () => {
-  const html = 'var cfg = { token: "abc123DEF", other: 1 };';
-  assert.equal(extractHeaderValue(html, 'token'), 'abc123DEF');
-  assert.equal(extractHeaderValue(html, 'faltante'), null);
 });
 
 test('embedPage: la fixture produce HTML con el flujo escapado', () => {

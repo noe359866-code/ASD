@@ -83,16 +83,39 @@ function fillTemplate(tpl, vars) {
   return tpl.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? String(vars[k]) : ''));
 }
 
+/** Mensaje que ve Stremio cuando el origen no responde. */
+export const ORIGIN_ERROR = 'Fallo consultando el origen';
+
 /**
  * Descarga la página embebida, extrae el .m3u8 y —si es una playlist master—
  * desglosa las variantes de calidad en streams separados.
+ *
+ * Nunca lanza por un fallo del origen: devuelve `{ streams: [], error, transient: true }`
+ * para que la capa HTTP no lo cachee.
  */
 export async function resolveStreams(embedUrl, cfg, { titlePrefix, tag }) {
   const diag = { embedUrl, candidates: [], variants: 0, steps: [] };
 
-  const page = await fetchText(embedUrl, cfg, {
-    accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  });
+  let page;
+  try {
+    page = await fetchText(embedUrl, cfg, {
+      accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    });
+  } catch (err) {
+    const errors = err instanceof UpstreamError ? err.errors : [String(err?.message ?? err)];
+    diag.steps.push(`página no disponible (${errors.join(', ')})`);
+    // Detalle para `wrangler tail`: qué respondió el origen en cada intento.
+    console.error(
+      JSON.stringify({
+        event: 'upstream_failed',
+        url: embedUrl,
+        attempts: err?.attempts ?? null,
+        elapsedMs: err?.elapsedMs ?? null,
+        errors,
+      })
+    );
+    return { streams: [], error: ORIGIN_ERROR, transient: true, diagnostics: diag };
+  }
   diag.steps.push(`page:${page.status} en ${page.elapsedMs}ms (intentos ${page.attempts})`);
 
   const all = findAllM3u8(page.text);

@@ -203,20 +203,37 @@ test('IDs TMDB: el prefijo se quita al construir la URL del origen', async (t) =
   assert.equal(stub.calls[1].url, 'https://unlimplay.com/f/embed/tv/1396/1/1');
 });
 
-test('el origen caído: reintenta lo configurado y lanza UpstreamError', async (t) => {
+test('el origen caído (503): reintenta lo configurado y devuelve error transitorio', async (t) => {
   const stub = stubFetch(() => ({ status: 503, body: 'down' }));
   t.after(stub.restore);
 
-  await assert.rejects(
-    () => getMovieStreams('tt1234567', cfg({ UPSTREAM_RETRIES: '2' })),
-    (err) => {
-      assert.ok(err instanceof UpstreamError);
-      assert.equal(err.attempts, 3);
-      assert.deepEqual(err.errors, ['HTTP 503', 'HTTP 503', 'HTTP 503']);
-      return true;
-    }
-  );
+  const result = await getMovieStreams('tt1234567', cfg({ UPSTREAM_RETRIES: '2' }));
+  assert.deepEqual(result.streams, []);
+  assert.equal(result.error, 'Fallo consultando el origen');
+  assert.equal(result.transient, true);
+  assert.deepEqual(result.diagnostics.steps, [
+    'página no disponible (HTTP 503, HTTP 503, HTTP 503)',
+  ]);
   assert.equal(stub.calls.length, 3, 'un intento inicial + dos reintentos');
+});
+
+test('un 404 del origen no se reintenta', async (t) => {
+  const stub = stubFetch(() => ({ status: 404, body: 'nope' }));
+  t.after(stub.restore);
+
+  const result = await getMovieStreams('tt1234567', cfg({ UPSTREAM_RETRIES: '3' }));
+  assert.equal(result.transient, true);
+  assert.equal(stub.calls.length, 1, 'un 404 no se reintenta');
+});
+
+test('un 403 (bloqueo de seguridad) no se reintenta y no lanza excepción', async (t) => {
+  const stub = stubFetch(() => ({ status: 403, body: 'Acceso Bloqueado' }));
+  t.after(stub.restore);
+
+  const result = await getSeriesStreams('tt1844624:1:1', cfg({ UPSTREAM_RETRIES: '2' }));
+  assert.deepEqual(result.streams, []);
+  assert.equal(result.error, 'Fallo consultando el origen');
+  assert.equal(stub.calls.length, 1);
 });
 
 test('ORIGIN configurable: el embed se construye contra el origen indicado', async (t) => {

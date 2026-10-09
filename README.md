@@ -13,7 +13,8 @@ variantes de calidad y los expone en el formato `streams` que Stremio espera.
 4. Responde con las cabeceras `Referer`/`User-Agent` que el CDN del origen exige, tanto en
    `behaviorHints.proxyHeaders` (Stremio moderno) como en `requestHeaders` (clientes viejos).
 5. Cachea la respuesta en la Cache API de Cloudflare (por defecto 30 min; los resultados
-   vacíos solo 2 min).
+   vacíos solo 2 min). Los fallos del origen **no se cachean**, para que el siguiente
+   intento vuelva a consultarlo.
 
 ## Estructura
 
@@ -29,7 +30,7 @@ variantes de calidad y los expone en el formato `streams` que Stremio espera.
 │   │   ├── upstream.js    # fetch con timeout, reintentos y rotación de UA
 │   │   ├── streams.js     # Validación de IDs y armado de la respuesta
 │   │   └── pages.js       # Página de instalación y /health
-│   ├── test/              # 71 pruebas (node:test, sin dependencias)
+│   ├── test/              # 75 pruebas (node:test, sin dependencias)
 │   └── testkit/           # Origen falso, fixtures y lanzador de workerd
 ├── wrangler.jsonc         # Configuración de despliegue
 ├── package.json
@@ -49,7 +50,7 @@ Abre `http://localhost:8787/` y verás la página de instalación con un botón 
 ## Pruebas
 
 ```bash
-npm test          # 71 pruebas: 56 unitarias + 15 end-to-end
+npm test          # 75 pruebas: 60 unitarias + 15 end-to-end
 npm run test:unit # solo las unitarias (rápidas)
 npm run test:e2e  # solo las end-to-end (arrancan workerd, ~15 s)
 npm run check     # pruebas + bundle de producción (sin desplegar)
@@ -133,6 +134,15 @@ Query útiles: `?debug=1` (requiere `DEBUG=1`) añade un bloque de diagnóstico,
 - **`Could not detect a directory containing static files (e.g. html, css and js)`**
   Wrangler no encontró `wrangler.jsonc`/`wrangler.toml` y asumió un proyecto de
   *static assets*. Se arregla con el archivo de configuración de la raíz.
+- **`{"streams": [], "error": "Fallo consultando el origen"}`** — el Worker no pudo
+  descargar la página embebida del origen. El log del Worker (`npx wrangler tail`) muestra
+  una línea JSON `upstream_failed` con la URL, los intentos y lo que respondió cada uno
+  (`HTTP 403`, `HTTP 503`, `timeout …`). Un **403 con «Acceso Bloqueado»** significa que el
+  origen bloquea las peticiones desde Cloudflare Workers por su política de seguridad; el
+  Worker no puede saltarse esa restricción. Solo el titular del origen puede permitir el
+  acceso. Los 4xx no se reintentan; los 5xx, 408, 429 y timeouts sí.
+- **`400 ID con formato inválido`** — el ID llega mal codificado en la URL (p. ej. un `%`
+  suelto).
 - **`streams: []`** — el origen no devolvió ningún `.m3u8` para ese ID. Con `DEBUG=1`
   pide `?debug=1` para ver qué URL se consultó y qué se encontró, o mira los logs en
   producción con `npm run tail`.
