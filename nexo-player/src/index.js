@@ -12,6 +12,7 @@
 import { resolveConfig } from './config.js';
 import { getMovieStreams, getSeriesStreams } from './streams.js';
 import { landingPage, healthPayload } from './pages.js';
+import { UpstreamError } from './upstream.js';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -87,7 +88,13 @@ async function handleStream({ kind, rawId, url, cfg, ctx, query }) {
   try {
     result = await handler(rawId, cfg);
   } catch (err) {
-    console.error(`handleStream(${kind}) error:`, err);
+    // Un UpstreamError trae el detalle de cada intento (HTTP 403, timeout, red…).
+    // Se registra como JSON plano porque el stack no incluye esos datos.
+    const detail =
+      err instanceof UpstreamError
+        ? { url: err.url, attempts: err.attempts, elapsedMs: err.elapsedMs, errors: err.errors }
+        : { message: err?.message ?? String(err) };
+    console.error(JSON.stringify({ event: 'upstream_failed', kind, rawId, ...detail }));
     result = { streams: [], error: 'Fallo consultando el origen' };
   }
 
