@@ -16,6 +16,11 @@ export class UpstreamError extends Error {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** 408 (timeout), 429 (rate limit) y cualquier 5xx pueden cambiar entre intentos. */
+export function isRetryableStatus(status) {
+  return status === 408 || status === 429 || status >= 500;
+}
+
 /**
  * Descarga un recurso de texto con reintentos.
  *
@@ -47,6 +52,9 @@ export async function fetchText(url, cfg, { accept = '*/*' } = {}) {
 
       if (!res.ok) {
         errors.push(`HTTP ${res.status}`);
+        await res.body?.cancel?.();
+        // Un 403/404 no se arregla reintentando: salimos del bucle y se lanza el error abajo.
+        if (!isRetryableStatus(res.status)) break;
         continue;
       }
 
@@ -66,7 +74,7 @@ export async function fetchText(url, cfg, { accept = '*/*' } = {}) {
 
   throw new UpstreamError(`No se pudo descargar ${url}`, {
     url,
-    attempts,
+    attempts: errors.length,
     elapsedMs: Date.now() - started,
     errors,
   });

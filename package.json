@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test \"nexo-player/test/*.test.js\"",
-    "test:unit": "node --test \"nexo-player/test/!(e2e).test.js\"",
+    "test:unit": "node --test nexo-player/test/config.test.js nexo-player/test/extract.test.js nexo-player/test/index.test.js nexo-player/test/playlist.test.js nexo-player/test/streams.test.js nexo-player/test/text.test.js",
     "test:e2e": "node --test nexo-player/test/e2e.test.js",
     "dev": "wrangler dev",
     "demo": "node nexo-player/testkit/demo.mjs",

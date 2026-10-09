@@ -59,17 +59,3 @@ export function extractM3u8(html) {
   const all = findAllM3u8(html);
   return all.length > 0 ? all[0] : null;
 }
-
-/**
- * Busca una cabecera HTTP dentro del HTML (útil cuando el .m3u8 exige token).
- * Ej.: extractHeaderValue(html, 'token') sobre `token: "abc"`.
- */
-export function extractHeaderValue(html, name) {
-  if (typeof html !== 'string') return null;
-  const re = new RegExp(
-    `["']?${name}["']?\\s*[:=]\\s*["']([^"']{1,512})["']`,
-    'i'
-  );
-  const m = html.match(re);
-  return m ? m[1] : null;
-}

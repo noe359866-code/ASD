@@ -21,7 +21,7 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
-      # 56 unitarias + 15 end-to-end contra el runtime real (workerd)
+      # 60 unitarias + 15 end-to-end contra el runtime real (workerd)
       # apuntando a un origen falso. No hace falta red externa.
       - name: Pruebas
         run: npm test

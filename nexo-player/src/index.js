@@ -10,7 +10,7 @@
  */
 
 import { resolveConfig } from './config.js';
-import { getMovieStreams, getSeriesStreams } from './streams.js';
+import { getMovieStreams, getSeriesStreams, ORIGIN_ERROR } from './streams.js';
 import { landingPage, healthPayload } from './pages.js';
 
 const CORS_HEADERS = {
@@ -87,8 +87,9 @@ async function handleStream({ kind, rawId, url, cfg, ctx, query }) {
   try {
     result = await handler(rawId, cfg);
   } catch (err) {
-    console.error(`handleStream(${kind}) error:`, err);
-    result = { streams: [], error: 'Fallo consultando el origen' };
+    // Solo llega aquí un fallo inesperado (el origen ya se maneja en resolveStreams).
+    console.error(JSON.stringify({ event: 'unexpected_error', kind, rawId, message: err?.message ?? String(err) }));
+    result = { streams: [], error: ORIGIN_ERROR, transient: true };
   }
 
   if (result.invalid) status = 400;
@@ -99,7 +100,11 @@ async function handleStream({ kind, rawId, url, cfg, ctx, query }) {
     payload.debug = result.diagnostics ?? { error: result.error ?? null };
   }
 
-  const ttl = result.streams.length > 0 ? cfg.cacheTtlSeconds : cfg.negativeCacheTtlSeconds;
+  // Los fallos transitorios del origen no se cachean: el siguiente intento debe ir al origen.
+  let ttl;
+  if (result.transient) ttl = 0;
+  else ttl = result.streams.length > 0 ? cfg.cacheTtlSeconds : cfg.negativeCacheTtlSeconds;
+
   const response = jsonResponse(payload, {
     status,
     cfg,
@@ -133,7 +138,12 @@ export default {
       if (path.startsWith('/stream/movie/') || path.startsWith('/stream/series/')) {
         const kind = path.startsWith('/stream/movie/') ? 'movie' : 'series';
         const prefix = `/stream/${kind}/`;
-        const rawId = decodeURIComponent(path.slice(prefix.length));
+        let rawId;
+        try {
+          rawId = decodeURIComponent(path.slice(prefix.length));
+        } catch {
+          return jsonResponse({ streams: [], error: 'ID con formato inválido' }, { status: 400, cfg });
+        }
         return handleStream({ kind, rawId, url, cfg, ctx, query: url.searchParams });
       }
 
