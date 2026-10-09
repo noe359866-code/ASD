@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Pruebas y bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # 56 unitarias + 15 end-to-end contra el runtime real (workerd)
+      # apuntando a un origen falso. No hace falta red externa.
+      - name: Pruebas
+        run: npm test
+
+      # Compila el Worker con la configuración real, sin desplegar.
+      # Falla si wrangler.jsonc se rompe o el entrypoint no existe.
+      - name: Comprobar el bundle
+        run: npx wrangler deploy --dry-run

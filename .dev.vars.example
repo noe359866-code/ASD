@@ -1,0 +1,20 @@
+# Copia este archivo como `.dev.vars` para el desarrollo local (`npm run dev`).
+# `.dev.vars` está en `.gitignore`: nunca subas secretos al repo.
+#
+# En producción estos mismos nombres se configuran en el panel de Cloudflare
+# (Settings -> Variables) o en el bloque "vars" de wrangler.jsonc.
+
+ORIGIN=https://unlimplay.com
+DEBUG=1
+CACHE_TTL_SECONDS=1800
+NEGATIVE_CACHE_TTL_SECONDS=120
+UPSTREAM_TIMEOUT_MS=12000
+UPSTREAM_RETRIES=2
+MAX_STREAMS=6
+
+# Plantillas de la página embebida del origen. Útiles si el sitio cambia sus rutas.
+# EMBED_MOVIE_PATH=/f/embed/movie/{id}
+# EMBED_SERIES_PATH=/f/embed/tv/{id}/{season}/{episode}
+
+# User-Agent fijo (por defecto se rotan tres navegadores reales).
+# USER_AGENT=Mozilla/5.0 ...

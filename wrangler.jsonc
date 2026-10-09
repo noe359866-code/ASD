@@ -11,15 +11,27 @@
   // Nombre del Worker -> quedará en https://<name>.<subdominio>.workers.dev
   "name": "nexo-player",
 
-  // Punto de entrada del código. Es LA clave del arreglo: el worker vive
-  // en una subcarpeta, y el comando de build se ejecuta desde la raíz.
-  "main": "nexo-player/worker.js",
+  // Punto de entrada. El build se ejecuta desde la raíz del repo, así que
+  // la ruta es relativa a ella.
+  "main": "nexo-player/src/index.js",
 
   // Fecha de compatibilidad del runtime (obligatoria en Wrangler 4).
   "compatibility_date": "2026-10-09",
 
-  // El worker solo usa APIs web estándar (fetch, URL, Response),
-  // así que no necesita ningún flag extra como "nodejs_compat".
+  // El worker solo usa APIs web estándar (fetch, URL, Response, caches),
+  // así que no necesita flags extra como "nodejs_compat".
+
+  // Valores por defecto. Se pueden cambiar aquí o en el panel
+  // (Settings -> Variables) sin redesplegar código.
+  "vars": {
+    "ORIGIN": "https://unlimplay.com",
+    "CACHE_TTL_SECONDS": "1800",
+    "NEGATIVE_CACHE_TTL_SECONDS": "120",
+    "UPSTREAM_TIMEOUT_MS": "12000",
+    "UPSTREAM_RETRIES": "2",
+    "MAX_STREAMS": "6",
+    "DEBUG": "0"
+  },
 
   // Opcional: dominio propio en lugar de workers.dev.
   // "routes": [

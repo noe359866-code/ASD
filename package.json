@@ -1,13 +1,18 @@
 {
   "name": "nexo-player",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Nexo Player — Addon proxy de Stremio para Cloudflare Workers",
   "type": "module",
   "scripts": {
+    "test": "node --test \"nexo-player/test/*.test.js\"",
+    "test:unit": "node --test \"nexo-player/test/!(e2e).test.js\"",
+    "test:e2e": "node --test nexo-player/test/e2e.test.js",
     "dev": "wrangler dev",
+    "demo": "node nexo-player/testkit/demo.mjs",
     "deploy": "wrangler deploy",
-    "tail": "wrangler tail"
+    "tail": "wrangler tail",
+    "check": "npm test && wrangler deploy --dry-run"
   },
   "devDependencies": {
     "wrangler": "^4.149.0"
